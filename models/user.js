@@ -1,13 +1,46 @@
 /** User class for message.ly */
 
+const db = require("../db");
+
 /** User of the site. */
 
 class User {
-	/** register new user -- returns
-	 *    {username, password, first_name, last_name, phone}
-	 */
+	/**
+   * Register a new user.
+   * @param {Object} userDetails - The user details to be registered.
+   * @param {string} userDetails.username - The username for the new user.
+   * @param {string} userDetails.password - The hashed password for the new user.
+   * @param {string} userDetails.first_name - The first name of the new user.
+   * @param {string} userDetails.last_name - The last name of the new user.
+   * @param {string} userDetails.phone - The phone number of the new user.
+   * @returns {Promise<Object>} - A Promise that resolves to the registered user resulting row object.
+   */
 
-	static async register({ username, password, first_name, last_name, phone }) {}
+	static async register({ username, password, first_name, last_name, phone }) {
+		const result = await db.query(
+			`
+			INSERT INTO users (
+				username,
+				password,
+				first_name,
+				last_name,
+				phone,
+				join_at
+				)
+			VALUES (
+				$1,
+				$2,
+				$3,
+				$4,
+				$5,
+				current_timestamp
+				)
+			RETURNING *
+			`,
+			[username, password, first_name, last_name, phone]
+		);
+		return result.rows[0];
+	}
 
 	/** Authenticate: is this username/password valid? Returns boolean. */
 
