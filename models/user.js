@@ -13,18 +13,17 @@ class User {
 		this.phone = phone;
 	}
 
-	/** 
+	/**
 	 * All: basic info on all users:
 	 * [{username, first_name, last_name, phone}, ...]
 	 *
 	 * Retrieve basic information on all users.
 	 * @returns {Promise<Array>} - A Promise that resolves to an array of user objects, each containing the following properties:
-	 * 		{string} username - The username of the user.
-	 * 		{string} first_name - The first name of the user.
-	 * 		{string} last_name - The last name of the user.
-	 * 		{string} phone - The phone number of the user.
+	 *  - {string} username - The username of the user.
+	 *  - {string} first_name - The first name of the user.
+	 *  - {string} last_name - The last name of the user.
+	 *  - {string} phone - The phone number of the user.
 	 */
-
 	static async all() {
 		//PAM: query the db for info from users to display
 		const results = await db.query(
@@ -40,10 +39,11 @@ class User {
 		const users = results.rows.map((u) => new User(u));
 		return users;
 	}
+
 	/**
 	 * Register a new user -- returns
 	 * {username, password, first_name, last_name, phone}
-	 * 
+	 *
 	 * @param {Object} userDetails - The user details to be registered.
 	 * @param {string} userDetails.username - The username for the new user.
 	 * @param {string} userDetails.password - The hashed password for the new user.
@@ -52,7 +52,6 @@ class User {
 	 * @param {string} userDetails.phone - The phone number of the new user.
 	 * @returns {Promise<Object>} - A Promise that resolves to the registered user resulting row object.
 	 */
-
 	static async register({ username, password, first_name, last_name, phone }) {
 		if (!username || !password || !first_name || !last_name || !phone) {
 			let error_msg = `Missing required data!
@@ -94,6 +93,62 @@ class User {
 		return result.rows[0];
 	}
 
+	/** Get: Retrieve user by username
+	 *
+	 * returns {username,
+	 *          first_name,
+	 *          last_name,
+	 *          phone,
+	 *          join_at,
+	 *          last_login_at }
+	 *
+	 * @param {string} username - The username of the user to retrieve.
+	 * @returns {Promise<Object>} - A Promise that resolves to an object containing the following user properties:
+	 *   - {string} username - The username of the user.
+	 *   - {string} first_name - The first name of the user.
+	 *   - {string} last_name - The last name of the user.
+	 *   - {string} phone - The phone number of the user.
+	 *   - {string} join_at - The date and time when the user joined.
+	 *   - {string} last_login_at - The date and time of the user's last login.
+	 * @throws {ExpressError} - Throws a 404 error if no user is found with the specified username.
+	 */
+	static async get(username) {
+		const result = await db.query(
+			`
+			SELECT 
+				username,
+				first_name,
+				last_name, 
+				phone,
+				join_at,
+				last_login_at
+			FROM users
+			WHERE username = $1		
+			`,
+			[username]
+		);
+
+		let user = result.rows[0];
+
+		if (!user) {
+			throw new ExpressError(`No such user by that username: ${username}`, 404);
+		}
+
+		// PAM: for in the future if i want to make a user obj with also a join_at, and last_login_at properties throught the class contructor
+		// let little_user = new User(user);
+		// console.log(little_user);
+		// return little_user
+
+		return {
+			username: user.username,
+			first_name: user.first_name,
+			last_name: user.last_name,
+			phone: user.phone,
+			join_at: user.join_at,
+			last_login_at: user.last_login_at,
+		};
+	}
+
 	/** Authenticate: is this username/password valid? Returns boolean. */
 
 	static async authenticate(username, password) {}
@@ -101,17 +156,6 @@ class User {
 	/** Update last_login_at for user */
 
 	static async updateLoginTimestamp(username) {}
-
-	/** Get: get user by username
-	 *
-	 * returns {username,
-	 *          first_name,
-	 *          last_name,
-	 *          phone,
-	 *          join_at,
-	 *          last_login_at } */
-
-	static async get(username) {}
 
 	/** Return messages from this user.
 	 *
