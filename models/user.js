@@ -2,6 +2,8 @@
 
 const db = require("../db");
 const ExpressError = require("../expressError");
+const bcrypt = require("bcrypt");
+const { BCRYPT_WORK_FACTOR, SECRET_KEY } = require("../config");
 
 /** User of the site. */
 
@@ -11,6 +13,61 @@ class User {
 		this.first_name = first_name;
 		this.last_name = last_name;
 		this.phone = phone;
+	}
+	/**
+	 * Register a new user -- returns
+	 * {username, password, first_name, last_name, phone}
+	 *
+	 * @param {Object} userDetails - The user details to be registered.
+	 * @param {string} userDetails.username - The username for the new user.
+	 * @param {string} userDetails.password - The hashed password for the new user.
+	 * @param {string} userDetails.first_name - The first name of the new user.
+	 * @param {string} userDetails.last_name - The last name of the new user.
+	 * @param {string} userDetails.phone - The phone number of the new user.
+	 * @returns {Promise<Object>} - A Promise that resolves to the registered user resulting row object.
+	 */
+	static async register({ username, password, first_name, last_name, phone }) {
+		if (!username || !password || !first_name || !last_name || !phone) {
+			let error_msg = `Missing required data!
+			\nusername:${username}
+			\nfirst_name:${first_name}
+			\nlast_name:${last_name}
+			\nphone:${phone}`;
+			if (!password) {
+				error_msg += "\nMissing password field!";
+			}
+			// PAM: was about to show the password, but on second thought maybe a msg is better.
+			// \npassword:${password}
+
+			throw new ExpressError(error_msg, 400);
+		}
+
+		// PAM: Forgot to hash the password
+		const hashedPassword = await bcrypt.hash(password, BCRYPT_WORK_FACTOR);
+
+		const result = await db.query(
+			`
+			INSERT INTO users (
+				username,
+				password,
+				first_name,
+				last_name,
+				phone,
+				join_at
+				)
+			VALUES (
+				$1,
+				$2,
+				$3,
+				$4,
+				$5,
+				current_timestamp
+				)
+			RETURNING *
+			`,
+			[username, hashedPassword, first_name, last_name, phone]
+		);
+		return result.rows[0];
 	}
 
 	/**
@@ -38,59 +95,6 @@ class User {
 		// PAM: use results to create user objects and then return user array made from.
 		const users = results.rows.map((u) => new User(u));
 		return users;
-	}
-
-	/**
-	 * Register a new user -- returns
-	 * {username, password, first_name, last_name, phone}
-	 *
-	 * @param {Object} userDetails - The user details to be registered.
-	 * @param {string} userDetails.username - The username for the new user.
-	 * @param {string} userDetails.password - The hashed password for the new user.
-	 * @param {string} userDetails.first_name - The first name of the new user.
-	 * @param {string} userDetails.last_name - The last name of the new user.
-	 * @param {string} userDetails.phone - The phone number of the new user.
-	 * @returns {Promise<Object>} - A Promise that resolves to the registered user resulting row object.
-	 */
-	static async register({ username, password, first_name, last_name, phone }) {
-		if (!username || !password || !first_name || !last_name || !phone) {
-			let error_msg = `Missing required data!
-			\nusername:${username}
-			
-			\nfirst_name:${first_name}
-			\nlast_name:${last_name}
-			\nphone:${phone}`;
-			if (!password) {
-				error_msg += "\nMissing password field!";
-			}
-			// PAM: was about to show the password, but on second thought maybe a msg is better.
-			// \npassword:${password}
-
-			throw new ExpressError(error_msg, 400);
-		}
-		const result = await db.query(
-			`
-			INSERT INTO users (
-				username,
-				password,
-				first_name,
-				last_name,
-				phone,
-				join_at
-				)
-			VALUES (
-				$1,
-				$2,
-				$3,
-				$4,
-				$5,
-				current_timestamp
-				)
-			RETURNING *
-			`,
-			[username, password, first_name, last_name, phone]
-		);
-		return result.rows[0];
 	}
 
 	/** Get: Retrieve user by username
@@ -149,9 +153,49 @@ class User {
 		};
 	}
 
-	/** Authenticate: is this username/password valid? Returns boolean. */
+	/** Authenticate: is this username/password valid? Returns boolean.
+	 *
+	 * Returns a Boolean: If the provided password matches the stored hashed password
+	 *
+	 * @param {string} username - The username of the user to authenticate.
+	 * @param {string} password - The password to validate.
+	 *
+	 * @returns {boolean} - A boolean indicating whether authentication was successful.
+	 *  - `true`  - indicating authentication Success.
+	 *  - `false` - indicating authentication Failure.
+	 *
+	 * @throws {ExpressError} - Throws a 404 error if no user is found with the provided username.
+	 * @throws {ExpressError} - Throws a 400 error for invalid username/password combinations.
+	 */
+	static async authenticate(username, password) {
+		// query the db
 
-	static async authenticate(username, password) {}
+		const results = await db.query(
+			`SELECT username, password 
+       FROM users
+       WHERE username = $1`,
+			[username]
+		);
+		const user = results.rows[0];
+		if (!user) {
+			throw new ExpressError(`No such user by that username: ${username}`, 404);
+		}
+		// use bcrypt.compare()
+		if (user) {
+			if (await bcrypt.compare(password, user.password)) {
+				// PAM : leaving these two lines here as i might need them later
+				// const token = jwt.sign({ username }, SECRET_KEY);
+				// return res.json({ message: `Logged in!`, token });
+
+				// authentication SUCESSS
+				return true;
+			} else {
+				// authentication FAILURE
+				return false;
+			}
+		}
+		throw new ExpressError("Invalid username/password", 400);
+	}
 
 	/** Update last_login_at for user */
 
