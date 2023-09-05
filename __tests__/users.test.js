@@ -1,7 +1,8 @@
 const db = require("../db");
 const User = require("../models/user");
 const Message = require("../models/message");
-
+// Tell Node that we're in test "mode"
+process.env.NODE_ENV = "test";
 
 describe("Test User class", function () {
   beforeEach(async function () {
@@ -50,6 +51,7 @@ describe("Test User class", function () {
 
   test("can get", async function () {
     let u = await User.get("test");
+    
     expect(u).toEqual({
       username: "test",
       first_name: "Test",
@@ -58,6 +60,8 @@ describe("Test User class", function () {
       last_login_at: expect.any(Date),
       join_at: expect.any(Date),
     });
+
+    
   });
 
   test("can get all", async function () {

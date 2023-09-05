@@ -8,11 +8,20 @@ const { BCRYPT_WORK_FACTOR, SECRET_KEY } = require("../config");
 /** User of the site. */
 
 class User {
-	constructor({ username, first_name, last_name, phone }) {
+	constructor({
+		username,
+		first_name,
+		last_name,
+		phone,
+		join_at,
+		last_login_at,
+	}) {
 		this.username = username;
 		this.first_name = first_name;
 		this.last_name = last_name;
 		this.phone = phone;
+		this.join_at = join_at;
+		this.last_login_at = last_login_at;
 	}
 	/**
 	 * Register a new user -- returns
@@ -53,7 +62,8 @@ class User {
 				first_name,
 				last_name,
 				phone,
-				join_at
+				join_at,
+				last_login_at
 				)
 			VALUES (
 				$1,
@@ -61,6 +71,7 @@ class User {
 				$3,
 				$4,
 				$5,
+				current_timestamp,
 				current_timestamp
 				)
 			RETURNING *
@@ -85,16 +96,18 @@ class User {
 		//PAM: query the db for info from users to display
 		const results = await db.query(
 			`SELECT 
-			  	username, 
-				first_name,  
-				last_name, 
+				username,
+				first_name,
+				last_name,
 				phone
 			   FROM users
-			   ORDER BY first_name, last_name`
+			   ORDER BY first_name, last_name
+			   `
 		);
 		// PAM: use results to create user objects and then return user array made from.
-		const users = results.rows.map((u) => new User(u));
-		return users;
+		// const users = results.rows.map((u) => new User(u));
+		// return users;
+		return results.rows
 	}
 
 	/** Get: Retrieve user by username

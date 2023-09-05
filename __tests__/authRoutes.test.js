@@ -1,6 +1,7 @@
 // const request = require("supertest");
 // const jwt = require("jsonwebtoken");
-
+// Tell Node that we're in test "mode"
+// process.env.NODE_ENV = "test";
 // const app = require("../app");
 // const db = require("../db");
 // const User = require("../models/user");

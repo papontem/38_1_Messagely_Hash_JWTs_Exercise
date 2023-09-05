@@ -1,7 +1,8 @@
 const db = require("../db");
 const User = require("../models/user");
 const Message = require("../models/message");
-
+// Tell Node that we're in test "mode"
+process.env.NODE_ENV = "test";
 
 describe("Test Message class", function () {
 
