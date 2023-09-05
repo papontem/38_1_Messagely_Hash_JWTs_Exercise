@@ -171,9 +171,11 @@ class User {
 		// query the db
 
 		const results = await db.query(
-			`SELECT username, password 
-       FROM users
-       WHERE username = $1`,
+			`
+			SELECT username, password 
+       		FROM users
+       		WHERE username = $1
+			`,
 			[username]
 		);
 		const user = results.rows[0];
@@ -197,9 +199,26 @@ class User {
 		throw new ExpressError("Invalid username/password", 400);
 	}
 
-	/** Update last_login_at for user */
+	/**
+	 * Update the `last_login_at` timestamp for a user.
+	 *
+	 * @param {string} username - The username of the user to update.
+	 *
+	 * @returns {Promise<Object>} - A Promise that resolves to an object containing the updated user's username and `last_login_at` timestamp.
+	 */
+	static async updateLoginTimestamp(username) {
+		const result = await db.query(
+			`
+			UPDATE users
+			SET last_login_at = current_timestamp
+			WHERE username = $1
+			RETURNING username, last_login_at
+			`,
+			[username]
+		);
 
-	static async updateLoginTimestamp(username) {}
+		return result.rows[0];
+	}
 
 	/** Return messages from this user.
 	 *
