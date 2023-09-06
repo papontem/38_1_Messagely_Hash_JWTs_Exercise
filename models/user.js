@@ -151,11 +151,6 @@ class User {
 			throw new ExpressError(`No such user by that username: ${username}`, 404);
 		}
 
-		// PAM: for in the future if i want to make a user obj with also a join_at, and last_login_at properties throught the class contructor
-		// let little_user = new User(user);
-		// console.log(little_user);
-		// return little_user
-
 		return {
 			username: user.username,
 			first_name: user.first_name,
@@ -181,8 +176,6 @@ class User {
 	 * @throws {ExpressError} - Throws a 400 error for invalid username/password combinations.
 	 */
 	static async authenticate(username, password) {
-		// query the db
-
 		const results = await db.query(
 			`
 			SELECT username, password 
@@ -209,7 +202,6 @@ class User {
 				return false;
 			}
 		}
-		throw new ExpressError("Invalid username/password", 400);
 	}
 
 	/**
